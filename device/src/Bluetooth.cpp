@@ -127,6 +127,7 @@ bool Bluetooth::isPlaceholderEncoder()
         case CODEC_TYPE_APTX_AD_SPEECH:
         case CODEC_TYPE_LC3:
         case CODEC_TYPE_APTX_AD_QLEA:
+        case CODEC_TYPE_APTX_AD_R4:
             return false;
         case CODEC_TYPE_AAC:
             return isAbrEnabled ? false : true;
@@ -340,7 +341,7 @@ int Bluetooth::configureA2dpEncoderDecoder()
         }
     }
 
-    if (codecFormat == CODEC_TYPE_LC3 || codecFormat == CODEC_TYPE_APTX_AD_QLEA) {
+    if (codecFormat == CODEC_TYPE_LC3 || codecFormat == CODEC_TYPE_APTX_AD_QLEA || codecFormat == CODEC_TYPE_APTX_AD_R4) {
         builder->payloadLC3Config(&paramData, &paramSize, miid,
                                   isLC3MonoModeOn);
         if (paramSize) {
@@ -692,7 +693,8 @@ void Bluetooth::startAbr()
 
     if ((codecFormat == CODEC_TYPE_APTX_AD_SPEECH) ||
             (codecFormat == CODEC_TYPE_LC3) ||
-            (codecFormat == CODEC_TYPE_APTX_AD_QLEA)) {
+            (codecFormat == CODEC_TYPE_APTX_AD_QLEA) ||
+            (codecFormat == CODEC_TYPE_APTX_AD_R4)) {
         fbDevice.config.sample_rate = SAMPLINGRATE_96K;
     } else {
         fbDevice.config.sample_rate = SAMPLINGRATE_8K;
@@ -851,7 +853,8 @@ void Bluetooth::startAbr()
             goto disconnect_fe;
         }
     } else if ((codecFormat == CODEC_TYPE_LC3) ||
-               (codecFormat == CODEC_TYPE_APTX_AD_QLEA)) {
+               (codecFormat == CODEC_TYPE_APTX_AD_QLEA) ||
+               (codecFormat == CODEC_TYPE_APTX_AD_R4)) {
         builder = new PayloadBuilder();
 
         if ((fbDevice.id == PAL_DEVICE_IN_BLUETOOTH_SCO_HEADSET) ||
