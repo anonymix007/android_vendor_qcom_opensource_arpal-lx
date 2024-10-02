@@ -144,7 +144,8 @@ LOCAL_HEADER_LIBRARIES := \
     libagm_headers \
     libacdb_headers \
     libarosal_headers \
-    libvui_dmgr_headers
+    libvui_dmgr_headers \
+    kvh2xml_headers
 
 LOCAL_SHARED_LIBRARIES := \
     libar-gsl\
