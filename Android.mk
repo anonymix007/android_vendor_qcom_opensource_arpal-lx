@@ -21,6 +21,7 @@ LOCAL_VENDOR_MODULE := true
 
 include $(BUILD_HEADER_LIBRARY)
 
+ifneq ($(QCPATH),)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE        := libar-pal
@@ -174,7 +175,7 @@ LOCAL_SHARED_LIBRARIES += libtinyalsa libtinycompress
 endif
 
 include $(BUILD_SHARED_LIBRARY)
-
+endif
 #-------------------------------------------
 #            Build CHARGER_LISTENER LIB
 #-------------------------------------------
