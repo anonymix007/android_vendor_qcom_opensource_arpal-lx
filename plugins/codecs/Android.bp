@@ -1,0 +1,13 @@
+cc_library_headers {
+    name: "pal_codec_headers",
+    vendor: true,
+    export_include_dirs: ["."],
+    header_libs: [
+        "libspf-headers",
+        "libarosal_headers",
+    ],
+    export_header_lib_headers: [
+        "libspf-headers",
+        "libarosal_headers",
+    ],
+}
