@@ -33,7 +33,9 @@
 #include "bt_intf.h"
 #include "bt_base.h"
 
+#ifndef NUM_CODEC
 #define NUM_CODEC          2
+#endif
 #define AUDIO_LOCATION_MAX 28
 #define TO_AIR             0
 #define FROM_AIR           1

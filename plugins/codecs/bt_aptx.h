@@ -43,7 +43,9 @@
 #define MODULE_ID_APTX_ADAPTIVE_ENC     0x07001082
 #define MODULE_ID_APTX_ADAPTIVE_SWB_DEC 0x07001083
 #define MODULE_ID_APTX_ADAPTIVE_SWB_ENC 0x07001084
+#ifndef NUM_CODEC
 #define NUM_CODEC                       4
+#endif
 
 /*
  * enums which describes the APTX Adaptive

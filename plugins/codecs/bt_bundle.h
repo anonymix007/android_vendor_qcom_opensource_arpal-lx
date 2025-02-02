@@ -46,7 +46,9 @@
 #define MODULE_ID_SBC_ENC               0x0700103A
 #define MODULE_ID_LDAC_ENC              0x0700107A
 #define MODULE_ID_CELT_ENC              0x07001090
+#ifndef NUM_CODEC
 #define NUM_CODEC                       4
+#endif
 
 /* Information about BT AAC encoder configuration
  * This data is used between audio HAL module and
