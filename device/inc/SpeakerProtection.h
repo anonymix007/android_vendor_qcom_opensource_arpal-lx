@@ -74,6 +74,7 @@
 #include <thread>
 #include<vector>
 #include "apm_api.h"
+#include "SpeakerTfa98xx.h"
 
 class Device;
 
@@ -154,6 +155,7 @@ protected :
     static int numberOfRequest;
     static struct pal_device_info vi_device;
     static struct pal_device_info cps_device;
+    std::unique_ptr<SpeakerTfa98xx> tfa98xx;
 
 private :
 

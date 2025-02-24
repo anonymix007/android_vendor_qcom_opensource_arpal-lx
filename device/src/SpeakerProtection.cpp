@@ -1366,6 +1366,10 @@ SpeakerProtection::SpeakerProtection(struct pal_device *device,
         PAL_ERR(LOG_TAG,"hw mixer error %d", status);
     }
 
+    if (SpeakerTfa98xx::isTfaDevicePresent(hwMixer)) {
+        tfa98xx = std::make_unique<SpeakerTfa98xx>();
+    }
+
     if (device->id == PAL_DEVICE_OUT_HANDSET) {
         vi_device.channels = 1;
         cps_device.channels = 1;
@@ -2350,8 +2354,12 @@ int32_t SpeakerProtection::spkrProtProcessingMode(bool flag)
             }
 
             payloadSize = 0;
-            builder->payloadSPConfig(&payload, &payloadSize, miid,
-                    PARAM_ID_SP_OP_MODE,(void *)&spModeConfg);
+            if (tfa98xx) {
+                tfa98xx->payloadSPConfig(&payload, &payloadSize, miid);
+            } else {
+                builder->payloadSPConfig(&payload, &payloadSize, miid,
+                        PARAM_ID_SP_OP_MODE, (void *)&spModeConfg);
+            }
             if (payloadSize) {
                 if (customPayload) {
                     free (customPayload);
