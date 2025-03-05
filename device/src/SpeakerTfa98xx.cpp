@@ -53,6 +53,21 @@ bool SpeakerTfa98xx::isTfaDevicePresent(struct mixer* hwMixer) {
     return mixer_get_ctl_by_name(hwMixer, "TFA Calibration");
 }
 
+void SpeakerTfa98xx::caliNX729J() {
+    constexpr int8_t NX729J_ADDRESSES[] = {0x35, 0x34};
+
+    for (int i = 0; i < speakerCount; i++) {
+        CaliInfo info = {
+            .dev_idx =  static_cast<int8_t>(i),
+            .i2c_addr = NX729J_ADDRESSES[i],
+            .min_imp = 1000,
+            .max_imp = 20000,
+        };
+        caliInfo.push_back(info);
+    }
+}
+
+
 void SpeakerTfa98xx::calibrationInfoInit() {
     calibratedImpedance = mixer_get_ctl_by_name(hwMixer, "TFA Calibration");
     if (!calibratedImpedance) {
@@ -65,15 +80,21 @@ void SpeakerTfa98xx::calibrationInfoInit() {
         PAL_ERR(LOG_TAG, "Invalid speaker count: %d", speakerCount);
         return;
     }
-    PAL_INFO(LOG_TAG, "speakerCount:%d, powerAmpCount:%d", speakerCount, powerAmpCount);
 
     // 2 speakers -> 1 power amp
     // 4 speakers -> 2 power amps
     powerAmpCount = std::min((speakerCount + 1) >> 1, static_cast<int>(MAX_PA_COUNT));
+    PAL_INFO(LOG_TAG, "speakerCount:%d, powerAmpCount:%d", speakerCount, powerAmpCount);
 
     defaultImpedance = mixer_get_ctl_by_name(hwMixer, "TFA Default Impedance");
     if (!defaultImpedance) {
-        PAL_ERR(LOG_TAG, "Invalid mixer control: TFA Default Impedance");
+        if (speakerCount != 2) {
+            PAL_ERR(LOG_TAG, "Invalid mixer control: TFA Default Impedance");
+            return;
+        }
+        PAL_ERR(LOG_TAG, "Using hardcoded values for NX729J");
+        caliInfo.clear();
+        caliNX729J();
         return;
     }
 
@@ -94,6 +115,11 @@ void SpeakerTfa98xx::calibrationInfoInit() {
             }
             fclose(fp);
         }
+    }
+
+    if (caliInfo.empty()) {
+        PAL_INFO(LOG_TAG, "Using hardcoded values for NX729J");
+        caliNX729J();
     }
 
     if (!caliInfo.empty()) {

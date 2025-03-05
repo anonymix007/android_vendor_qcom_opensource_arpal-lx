@@ -71,4 +71,6 @@ class SpeakerTfa98xx {
 
     FILE* openDeviceFile(uint8_t address, const char* type);
     long readDeviceFile(char* buffer, size_t size, FILE* fp);
+
+    void caliNX729J();
 };
