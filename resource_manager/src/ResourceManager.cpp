@@ -11573,7 +11573,7 @@ void ResourceManager::process_device_info(struct xml_userdata *data, const XML_C
             std::string snddevname(data->data_buf);
             deviceInfo[size].sndDevName = snddevname;
             updateSndName(deviceInfo[size].deviceId, snddevname);
-        } else if (!strcmp(tag_name, "speaker_protection_enabled")) {
+        } else if (!strcmp(tag_name, "speaker_protection_enabled") || !strcmp(tag_name, "tfa98xx_speaker_protection_enabled")) {
             if (atoi(data->data_buf))
                 isSpeakerProtectionEnabled = true;
         } else if (!strcmp(tag_name, "handset_protection_enabled")) {
