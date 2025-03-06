@@ -448,6 +448,11 @@ exit:
 
 int SpeakerProtection::spkrStartCalibration()
 {
+    if (tfa98xx) {
+        PAL_DBG(LOG_TAG, "TFA98xx: Exit early");
+        return -EINVAL;
+    }
+
     FILE *fp = NULL;
     struct pal_device device, deviceRx;
     struct pal_channel_info ch_info;
@@ -1202,6 +1207,11 @@ exit:
   */
 void SpeakerProtection::getSpeakerTemperatureList()
 {
+    if (tfa98xx) {
+        PAL_DBG(LOG_TAG, "TFA98xx: Exit early");
+        return;
+    }
+
     int i = 0;
     int value;
     PAL_DBG(LOG_TAG, "Enter Speaker Get Temperature List");
@@ -1216,6 +1226,11 @@ void SpeakerProtection::getSpeakerTemperatureList()
 
 void SpeakerProtection::spkrCalibrationThread()
 {
+    if (tfa98xx) {
+        PAL_DBG(LOG_TAG, "TFA98xx: Exit early");
+        return;
+    }
+
     unsigned long sec = 0;
     bool proceed = false;
     int i;
@@ -1407,6 +1422,11 @@ SpeakerProtection::~SpeakerProtection()
 
 int32_t SpeakerProtection::getSpkrXmaxTmaxData()
 {
+    if (tfa98xx) {
+        PAL_DBG(LOG_TAG, "TFA98xx: Exit early");
+        return -EINVAL;
+    }
+
     const char* getParamControl = "getParam";
     char* pcmDeviceName = NULL;
     uint8_t* payload = NULL;
@@ -1560,6 +1580,11 @@ exit:
 
 void SpeakerProtection::startSpkrXmaxTmaxLogging()
 {
+    if (tfa98xx) {
+        PAL_DBG(LOG_TAG, "TFA98xx: Exit early");
+        return;
+    }
+
     FILE* log_fp = NULL;
     int32_t ret = 0;
 
@@ -1593,6 +1618,11 @@ void SpeakerProtection::startSpkrXmaxTmaxLogging()
  */
 void SpeakerProtection::updateCpsCustomPayload(int miid, uint32_t phy_add[3], int wsa2_flag)
 {
+    if (tfa98xx) {
+        PAL_DBG(LOG_TAG, "TFA98xx: Exit early");
+        return;
+    }
+
     PayloadBuilder* builder = new PayloadBuilder();
     uint8_t* payload = NULL;
     size_t payloadSize = 0;
@@ -1747,6 +1777,11 @@ exit:
  */
 int32_t SpeakerProtection::spkrProtProcessingMode(bool flag)
 {
+    if (tfa98xx) {
+        PAL_DBG(LOG_TAG, "TFA98xx: Exit early");
+        return -EINVAL;
+    }
+
     int ret = 0, dir = TX_HOSTLESS, flags, viParamId = 0, tempCH, Channels;
     char mSndDeviceName_vi[128] = {0};
     char mSndDeviceName_cps[128] = {0};
@@ -2354,12 +2389,8 @@ int32_t SpeakerProtection::spkrProtProcessingMode(bool flag)
             }
 
             payloadSize = 0;
-            if (tfa98xx) {
-                tfa98xx->payloadSPConfig(&payload, &payloadSize, miid);
-            } else {
-                builder->payloadSPConfig(&payload, &payloadSize, miid,
-                        PARAM_ID_SP_OP_MODE, (void *)&spModeConfg);
-            }
+            builder->payloadSPConfig(&payload, &payloadSize, miid,
+                    PARAM_ID_SP_OP_MODE, (void *)&spModeConfg);
             if (payloadSize) {
                 if (customPayload) {
                     free (customPayload);
@@ -2870,8 +2901,12 @@ void SpeakerProtection::updateSPcustomPayload()
 
         spModeConfg.operation_mode = NORMAL_MODE;
         payloadSize = 0;
-        builder->payloadSPConfig(&payload, &payloadSize, miid,
-                        PARAM_ID_SP_OP_MODE,(void *)&spModeConfg);
+        if (tfa98xx) {
+            tfa98xx->payloadSPConfig(&payload, &payloadSize, miid);
+        } else {
+            builder->payloadSPConfig(&payload, &payloadSize, miid,
+                            PARAM_ID_SP_OP_MODE,(void *)&spModeConfg);
+        }
         if (payloadSize) {
             ret = updateCustomPayload(payload, payloadSize);
             free(payload);
@@ -2891,6 +2926,11 @@ exit:
 
 int SpeakerProtection::speakerProtectionDynamicCal()
 {
+    if (tfa98xx) {
+        PAL_DBG(LOG_TAG, "TFA98xx: Exit early");
+        return -EINVAL;
+    }
+
     int ret = 0;
 
     PAL_DBG(LOG_TAG, "Enter");
@@ -2923,6 +2963,13 @@ int SpeakerProtection::start()
 {
     PAL_DBG(LOG_TAG, "Enter");
 
+    if (tfa98xx) {
+        updateSPcustomPayload();
+        PAL_DBG(LOG_TAG, "TFA98xx: exit early");
+        Device::start();
+        return 0;
+    }
+
     if (ResourceManager::isVIRecordStarted) {
         PAL_DBG(LOG_TAG, "record running so just update SP payload");
         updateSPcustomPayload();
@@ -2940,6 +2987,12 @@ int SpeakerProtection::stop()
 {
     PAL_DBG(LOG_TAG, "Inside Speaker Protection stop");
     Device::stop();
+
+    if (tfa98xx) {
+        PAL_DBG(LOG_TAG, "TFA98xx: Exit early");
+        return 0;
+    }
+
     if (ResourceManager::isVIRecordStarted) {
         PAL_DBG(LOG_TAG, "record running so no need to proceed");
         ResourceManager::isVIRecordStarted = false;
@@ -2952,6 +3005,11 @@ int SpeakerProtection::stop()
 
 int32_t SpeakerProtection::setParameter(uint32_t param_id, void *param)
 {
+    if (tfa98xx) {
+        PAL_DBG(LOG_TAG, "TFA98xx: Exit early");
+        return -EINVAL;
+    }
+
     PAL_DBG(LOG_TAG, "Inside Speaker Protection Set parameters");
     (void ) param;
     if (param_id == PAL_SP_MODE_DYNAMIC_CAL)
@@ -2961,6 +3019,11 @@ int32_t SpeakerProtection::setParameter(uint32_t param_id, void *param)
 
 int32_t SpeakerProtection::getFTMParameter(void **param)
 {
+    if (tfa98xx) {
+        PAL_DBG(LOG_TAG, "TFA98xx: Exit early");
+        return -EINVAL;
+    }
+
     int size = 0, status = 0, tagid = 0;
     int spkr1_status = 0;
     int spkr2_status = 0;
@@ -3225,6 +3288,11 @@ exit :
 
 int32_t SpeakerProtection::getCalibrationData(void **param)
 {
+    if (tfa98xx) {
+        PAL_DBG(LOG_TAG, "TFA98xx: Exit early");
+        return -EINVAL;
+    }
+
     int i, tempCH = 0, status = 0;
     struct vi_r0t0_cfg_t r0t0Array[numberOfChannels];
     double dr0[numberOfChannels];
@@ -3282,6 +3350,11 @@ int32_t SpeakerProtection::getCalibrationData(void **param)
 
 int32_t SpeakerProtection::getParameter(uint32_t param_id, void **param)
 {
+    if (tfa98xx) {
+        PAL_DBG(LOG_TAG, "TFA98xx: Exit early");
+        return -EINVAL;
+    }
+
     int32_t status = 0;
     switch(param_id) {
         case PAL_PARAM_ID_SP_GET_CAL:
