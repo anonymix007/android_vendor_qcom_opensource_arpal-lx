@@ -1366,6 +1366,10 @@ SpeakerProtection::SpeakerProtection(struct pal_device *device,
         PAL_ERR(LOG_TAG,"hw mixer error %d", status);
     }
 
+    if (SpeakerProtectionTfa98xx::isTfaDevicePresent(hwMixer)) {
+        tfa98xx = std::make_unique<SpeakerProtectionTfa98xx>();
+    }
+
     if (device->id == PAL_DEVICE_OUT_HANDSET) {
         vi_device.channels = 1;
         cps_device.channels = 1;
@@ -1749,7 +1753,7 @@ int32_t SpeakerProtection::spkrProtProcessingMode(bool flag)
     char mSndDeviceName_SP[128] = {0};
     uint8_t* payload = NULL;
     uint32_t devicePropId[] = {0x08000010, 1, 0x2};
-    uint32_t miid = 0, SP_II_miid = 0, SP_miid = 0, tagid, deviceid;
+    uint32_t miid = 0, pcmId = 0, SP_II_miid = 0, SP_miid = 0, tagid, deviceid;
     bool isTxFeandBeConnected = true;
     bool isCPSFeandBeConnected = true;
     size_t payloadSize = 0;
@@ -1758,6 +1762,7 @@ int32_t SpeakerProtection::spkrProtProcessingMode(bool flag)
     struct pal_stream_attributes sAttr;
     struct pcm_config config;
     struct mixer_ctl *connectCtrl = NULL;
+    struct mixer_ctl *mixerCtl = NULL;
     struct mixer_ctl *connectCtrl2 = NULL;
     struct audio_route *audioRoute = NULL;
     struct vi_r0t0_cfg_t r0t0Array[numberOfChannels];
@@ -2047,6 +2052,10 @@ int32_t SpeakerProtection::spkrProtProcessingMode(bool flag)
 
         flags = PCM_IN;
 
+        if (tfa98xx) {
+            goto pcm_open;
+        }
+
         for (int ch = numberOfChannels; ch != 0; ch = ch >> CHANNELS_2) {
             if (numberOfChannels == CHANNELS_4) {
                 modeConfg.num_speakers = CHANNELS_2;
@@ -2247,6 +2256,7 @@ int32_t SpeakerProtection::spkrProtProcessingMode(bool flag)
             }
         }
 
+pcm_open:
         txPcm = pcm_open(rm->getVirtualSndCard(), pcmDevIdTx.at(0), flags, &config);
         if (!txPcm) {
             PAL_ERR(LOG_TAG, "txPcm open failed");
@@ -2256,6 +2266,10 @@ int32_t SpeakerProtection::spkrProtProcessingMode(bool flag)
         if (!pcm_is_ready(txPcm)) {
             PAL_ERR(LOG_TAG, "txPcm open not ready");
             goto err_pcm_open;
+        }
+
+        if (tfa98xx) {
+            goto skip_mixer_event_callback;
         }
 
         PAL_DBG(LOG_TAG, "registering DC detection event for VI module");
@@ -2284,6 +2298,7 @@ int32_t SpeakerProtection::spkrProtProcessingMode(bool flag)
         if (ret != 0)
             PAL_ERR(LOG_TAG, "Failed to register callback to rm");
 
+skip_mixer_event_callback:
         // Setting up SP mode
         rm->getBackendName(mDeviceAttr.id, backEndNameRx);
         if (!strlen(backEndNameRx.c_str())) {
@@ -2307,25 +2322,12 @@ int32_t SpeakerProtection::spkrProtProcessingMode(bool flag)
             else
                 tagid = MODULE_SP;
 
-        // Set the operation mode for SP module
-        PAL_DBG(LOG_TAG, "Operation mode for SP %d",
-                        rm->mSpkrProtModeValue.operationMode);
-        switch (rm->mSpkrProtModeValue.operationMode) {
-            case PAL_SP_MODE_FACTORY_TEST:
-                spModeConfg.operation_mode = FACTORY_TEST_MODE;
-            break;
-            case PAL_SP_MODE_V_VALIDATION:
-                spModeConfg.operation_mode = V_VALIDATION_MODE;
-            break;
-            default:
-                PAL_INFO(LOG_TAG, "Normal mode being used");
-                spModeConfg.operation_mode = NORMAL_MODE;
-        }
             ret = session->getMIID(backEndNameRx.c_str(), tagid, &miid);
             if (ret) {
                 PAL_ERR(LOG_TAG, "Failed to get tag info %x, status = %d", tagid, ret);
                 goto err_pcm_open;
             }
+            pcmId = session->getFrontendPcmId(sAttr.direction);
 
             if (ch == CHANNELS_4)
             {
@@ -2334,24 +2336,34 @@ int32_t SpeakerProtection::spkrProtProcessingMode(bool flag)
                 SP_miid = miid;
             }
 
-            // Set the operation mode for SP module
-            PAL_DBG(LOG_TAG, "Operation mode for SP %d",
-                            rm->mSpkrProtModeValue.operationMode);
-            switch (rm->mSpkrProtModeValue.operationMode) {
-                case PAL_SP_MODE_FACTORY_TEST:
-                    spModeConfg.operation_mode = FACTORY_TEST_MODE;
-                break;
-                case PAL_SP_MODE_V_VALIDATION:
-                    spModeConfg.operation_mode = V_VALIDATION_MODE;
-                break;
-                default:
-                    PAL_INFO(LOG_TAG, "Normal mode being used");
-                    spModeConfg.operation_mode = NORMAL_MODE;
-            }
+            if (tfa98xx) {
+                ret = tfa98xx->sendPcmIdAndMiidToDriver(miid, pcmId);
+                if (ret) {
+                    PAL_ERR(LOG_TAG, "Failed to send PCM ID %d and MIID to driver", pcmId);
+                    goto exit;
+                }
+                payloadSize = 0;
+                tfa98xx->payloadSPConfig(&payload, &payloadSize, miid);
+            } else {
+                // Set the operation mode for SP module
+                PAL_DBG(LOG_TAG, "Operation mode for SP %d",
+                                rm->mSpkrProtModeValue.operationMode);
+                switch (rm->mSpkrProtModeValue.operationMode) {
+                    case PAL_SP_MODE_FACTORY_TEST:
+                        spModeConfg.operation_mode = FACTORY_TEST_MODE;
+                    break;
+                    case PAL_SP_MODE_V_VALIDATION:
+                        spModeConfg.operation_mode = V_VALIDATION_MODE;
+                    break;
+                    default:
+                        PAL_INFO(LOG_TAG, "Normal mode being used");
+                        spModeConfg.operation_mode = NORMAL_MODE;
+                }
 
-            payloadSize = 0;
-            builder->payloadSPConfig(&payload, &payloadSize, miid,
-                    PARAM_ID_SP_OP_MODE,(void *)&spModeConfg);
+                payloadSize = 0;
+                builder->payloadSPConfig(&payload, &payloadSize, miid,
+                        PARAM_ID_SP_OP_MODE,(void *)&spModeConfg);
+            }
             if (payloadSize) {
                 if (customPayload) {
                     free (customPayload);
