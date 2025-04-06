@@ -72,10 +72,6 @@ void SpeakerProtectionTfa98xx::calibrationInfoInit() {
     PAL_INFO(LOG_TAG, "speakerCount:%d, powerAmpCount:%d", speakerCount, powerAmpCount);
 
     defaultImpedance = mixer_get_ctl_by_name(hwMixer, "TFA Default Impedance");
-    if (!defaultImpedance) {
-        PAL_ERR(LOG_TAG, "Invalid mixer control: TFA Default Impedance");
-        return;
-    }
 
     bool hasCalibrationNodes = false;
     caliInfo.clear();
@@ -107,12 +103,17 @@ void SpeakerProtectionTfa98xx::calibrationInfoInit() {
             info.i2c_addr = DEVICE_ADDRESSES[i];
             info.min_imp = DEFAULT_MIN_IMPEDANCE;
             info.max_imp = DEFAULT_MAX_IMPEDANCE;
+            info.def_imp = DEFAULT_IMPEDANCE;
             caliInfo.push_back(info);
         }
     }
 
     if (!caliInfo.empty()) {
         std::sort(caliInfo.begin(), caliInfo.end());
+
+        if (!defaultImpedance) {
+            return;
+        }
 
         for (auto& info : caliInfo) {
             info.def_imp = mixer_ctl_get_value(defaultImpedance, info.dev_idx);

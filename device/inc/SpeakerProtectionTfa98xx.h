@@ -23,9 +23,11 @@
 static constexpr uint8_t MAX_PA_COUNT = 2;
 static constexpr uint8_t DEVICE_ADDRESSES[] = {0x34, 0x35, 0x36, 0x37};
 
-// Default impedance values for devices without /proc/tfa98xx-<i2c_addr>/cali_info
+// Default impedance values for devices without /proc/tfa98xx-<i2c_addr>/cali_info or "TFA Default Impedance"
 static constexpr int32_t DEFAULT_MIN_IMPEDANCE = 4000;
 static constexpr int32_t DEFAULT_MAX_IMPEDANCE = 8000;
+static constexpr int32_t DEFAULT_IMPEDANCE = 7000;
+
 
 // Referenced from tfadsp_common.h but replaced with reverse engineered parameter values
 // Perhaps the best place to put these is in sp_rx.h ?
